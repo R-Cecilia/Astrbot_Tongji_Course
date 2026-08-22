@@ -1,31 +1,43 @@
 # tongji_course
 
-同济大学选课助手 AstrBot 插件。给大模型（Agent）提供两个函数调用工具，让它在回答"某门课/某位老师"时主动查询精确的本校课程数据，而不是靠检索"猜"。
+同济大学选课助手 AstrBot 插件。给大模型（Agent）提供函数调用工具，让它在回答「某门课 / 某位老师」时主动查询本校真实课程数据；也提供手动命令，100% 可靠触发。老师对比结果以「深科技磨砂玻璃」风格表格图片发送。
 
 ## 功能
 
-- `search_course`：按课程名或课程代码查询课程，返回课程代码、学分、评分、评价数、任课教师、院系
-- `search_teacher`：按教师姓名查询其开设的课程，返回课程列表、学分、评分、评价数
+**工具（Agent 自动调用）**
+- `search_course`：查某门课的评分、评价数、教师及学生评价
+- `search_teacher`：查某位老师开了哪些课、评分如何
+- `compare_teachers`：对比同一门课的各任课老师，**输出深科技对比表图片**
+
+**命令（手动，100% 触发）**
+- `/course <课程名>`：查一门课
+- `/teacher <老师名>`：查一位老师开的课
+- `/compare <课程名>`：老师对比（出图片）
+- `/cmds`：本插件命令一览（避开官方 `/help`）
 
 ## 数据
 
-`courses_index.json` 由同济选课社区（YOURTJ）公开课程评价数据清洗生成，约 9261 门课程、3159 位老师、10956 条评价。
+`courses_index.json` 由同济选课社区（YOURTJ）公开课程评价数据清洗生成，约 9261 门课程、3159 位老师、10956 条评价；每门课带**代表性评价原文**（`samples`）与 **LLM 生成的评价总结**（`summary`）。
 
 ## 安装
 
-1. 把本仓库内容复制到 AstrBot 的 `data/plugins/tongji_course/`
-2. 重启 AstrBot（或在面板重载插件）
-3. 在 QQ 里问："现代代数基础这门课怎么样？" —— LLM 会自动调用工具查询
+1. 把**整个** `tongji_course/` 文件夹复制到 AstrBot 的 `data/plugins/tongji_course/`
+   （含 `main.py`、`course_search.py`、`table_render.py`、`__init__.py`、`metadata.yaml`、`courses_index.json`——**四个 .py 必须一起**，`main` 用了相对导入）
+2. 重启 AstrBot
+3. 用自然语言问：「高等数学(B)上这个课老师怎么选？」或用命令 `/compare 高等数学(B)上`
 
-## 命令
+## 架构
 
-- `/course <课程名>`：手动查询课程
+```
+main.py           入口：注册命令/工具（薄层）
+course_search.py  领域层：加载索引、宽松匹配、单课/教师/对比聚合
+table_render.py   表现层：深科技表格图片 + 文字表格
+```
 
-## 开发说明
-
-- 工具通过 `@llm_tool` 注册，docstring 的 `Args:` 段会被 AstrBot 解析成工具签名，必须按 Google 风格写
+- 工具通过 `@llm_tool` 注册，docstring 的 `Args:` 段会被 AstrBot 解析成工具签名（Google 风格）
 - 索引在插件初始化时从 `courses_index.json` 一次性载入内存
-- 两个工具职责不重叠：`search_course` 只按课程名/代码，`search_teacher` 只按教师名
+- 关键词匹配做了**宽松化**：常见简称（线代→线性代数）、口语词清理、子序列匹配，自然语言更易命中
+- 老师对比图用 Pillow 绘制「深科技磨砂玻璃」风：深空蓝渐变 + 网格线 + 玻璃面板 + 青色霓虹数据 + 扫描线纹理（静态；QQ 图片不支持交互 / 动画）
 
 ## 项目评测
 
